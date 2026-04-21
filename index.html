@@ -133,6 +133,100 @@
       font-size: 0.75rem;
       color: var(--muted);
     }
+
+    .result-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(6px);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.22s ease, visibility 0.22s ease;
+    }
+
+    .result-backdrop.is-open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .result-dialog {
+      width: 100%;
+      max-width: 22rem;
+      padding: 0;
+      border: 1px solid var(--ring);
+      border-radius: 1.15rem;
+      background: var(--bg-elevated);
+      color: var(--text);
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55);
+      transform: scale(0.94) translateY(8px);
+      opacity: 0;
+      transition: transform 0.28s cubic-bezier(0.34, 1.2, 0.64, 1), opacity 0.22s ease;
+    }
+
+    .result-backdrop.is-open .result-dialog {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+    }
+
+    .result-dialog--win {
+      border-color: rgba(220, 38, 38, 0.35);
+      box-shadow:
+        0 0 0 1px rgba(220, 38, 38, 0.12),
+        0 24px 48px rgba(0, 0, 0, 0.55);
+    }
+
+    .result-head {
+      padding: 1.25rem 1.35rem 0.75rem;
+      border-radius: 1.15rem 1.15rem 0 0;
+      background: linear-gradient(180deg, rgba(220, 38, 38, 0.12) 0%, transparent 100%);
+    }
+
+    .result-dialog:not(.result-dialog--win) .result-head {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 100%);
+    }
+
+    .result-kicker {
+      margin: 0 0 0.35rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .result-dialog--win .result-kicker {
+      color: #fca5a5;
+    }
+
+    .result-title {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .result-body {
+      padding: 0 1.35rem 1.35rem;
+    }
+
+    .result-premio {
+      margin: 0;
+      font-size: clamp(1.05rem, 3.8vw, 1.2rem);
+      line-height: 1.45;
+      color: #e4e4e7;
+    }
+
+    .result-actions {
+      padding: 0 1.35rem 1.35rem;
+    }
+
+    .result-actions button {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    }
   </style>
 </head>
 <body>
@@ -146,6 +240,33 @@
     </div>
   </main>
   <footer>Promo sujeta a disponibilidad del estudio.</footer>
+
+  <div
+    id="resultBackdrop"
+    class="result-backdrop"
+    role="presentation"
+    aria-hidden="true"
+  >
+    <div
+      id="resultDialog"
+      class="result-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="resultTitle"
+      aria-describedby="resultPremio"
+    >
+      <div class="result-head">
+        <p class="result-kicker" id="resultKicker">Resultado</p>
+        <h2 class="result-title" id="resultTitle">Te tocó</h2>
+      </div>
+      <div class="result-body">
+        <p class="result-premio" id="resultPremio"></p>
+      </div>
+      <div class="result-actions">
+        <button type="button" id="resultCerrar">Listo</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     const opciones = [
@@ -166,6 +287,12 @@
     const canvas = document.getElementById("ruleta");
     const ctx = canvas.getContext("2d");
     const btnGirar = document.getElementById("btnGirar");
+    const resultBackdrop = document.getElementById("resultBackdrop");
+    const resultDialog = document.getElementById("resultDialog");
+    const resultKicker = document.getElementById("resultKicker");
+    const resultTitle = document.getElementById("resultTitle");
+    const resultPremio = document.getElementById("resultPremio");
+    const resultCerrar = document.getElementById("resultCerrar");
 
     let cx = 160;
     let cy = 160;
@@ -223,6 +350,68 @@
       ctx.restore();
     }
 
+    /** Grados en [0, 360). */
+    function norm360(deg) {
+      return ((deg % 360) + 360) % 360;
+    }
+
+    /**
+     * Sectores como en canvas: desde el eje +X (3 en punto), sentido horario.
+     * El puntero visual está arriba (12 en punto) = 270° en esa convención.
+     * rotDeg rota la ruleta en sentido horario (igual que ctx.rotate positivo).
+     */
+    function indiceBajoPuntero(rotDeg, n, pointerDeg = 270) {
+      const sector = 360 / n;
+      const p = norm360(pointerDeg);
+      const r = norm360(rotDeg);
+      for (let j = 0; j < n; j++) {
+        const start = norm360(j * sector + r);
+        const end = norm360((j + 1) * sector + r);
+        if (start < end) {
+          if (p >= start && p < end) return j;
+        } else {
+          if (p >= start || p < end) return j;
+        }
+      }
+      return 0;
+    }
+
+    function esPremioSuave(texto) {
+      return texto.toLowerCase().includes("seguí participando");
+    }
+
+    function abrirResultado(premio) {
+      const neutral = esPremioSuave(premio);
+      resultDialog.classList.toggle("result-dialog--win", !neutral);
+      resultKicker.textContent = neutral ? "Esta vez" : "¡Felicitaciones!";
+      resultTitle.textContent = neutral ? "Casi" : "Te tocó";
+      resultPremio.textContent = premio;
+      resultBackdrop.classList.add("is-open");
+      resultBackdrop.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+      requestAnimationFrame(() => resultCerrar.focus());
+    }
+
+    function cerrarResultado() {
+      if (!resultBackdrop.classList.contains("is-open")) return;
+      resultBackdrop.classList.remove("is-open");
+      resultBackdrop.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+      btnGirar.disabled = false;
+      btnGirar.focus();
+    }
+
+    resultCerrar.addEventListener("click", cerrarResultado);
+    resultBackdrop.addEventListener("click", (e) => {
+      if (e.target === resultBackdrop) cerrarResultado();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && resultBackdrop.classList.contains("is-open")) {
+        e.preventDefault();
+        cerrarResultado();
+      }
+    });
+
     function girar() {
       if (girando) return;
       girando = true;
@@ -243,14 +432,9 @@
         if (progreso < 1) {
           requestAnimationFrame(animar);
         } else {
-          const arcDeg = 360 / opciones.length;
-          const normalizado = ((angulo % 360) + 360) % 360;
-          const index = Math.floor(
-            (opciones.length - normalizado / arcDeg) % opciones.length
-          );
-          alert("Te tocó: " + opciones[index]);
+          const index = indiceBajoPuntero(angulo, opciones.length);
+          abrirResultado(opciones[index]);
           girando = false;
-          btnGirar.disabled = false;
         }
       }
 
