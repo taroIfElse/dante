@@ -194,6 +194,11 @@ function showSpinMsg(text){
   el.classList.add("is-visible");
 }
 
+/** Grados en [0, 360). */
+function norm360(x){
+ return ((x%360)+360)%360;
+}
+
 const premios=[
 "Seguí participando 😉",
 "20% OFF",
@@ -332,9 +337,18 @@ function spin(){
  const wheel=document.getElementById("wheelCanvas");
  const index=elegirPremio();
  const deg=360/premios.length;
- const target=360-(index*deg)-deg/2;
-
- rotation += 360*6 + target;
+ /*
+  Canvas: sectores en sentido horario desde las 3 (0°). El puntero ▼ está arriba = 270°.
+  Tras rotate(R) en CSS (R horario), el centro del sector i (local) queda en (C + R) mod 360, con C = (i+0.5)*deg.
+  Queremos C + R ≡ 270 → R mod 360 ≡ 270 - C. Hay que sumar el delta a la rotación ya acumulada.
+ */
+ const sectorCenterDeg=(index+0.5)*deg;
+ const pointerDeg=270;
+ const desiredMod=norm360(pointerDeg-sectorCenterDeg);
+ const prevMod=norm360(rotation);
+ let delta=norm360(desiredMod-prevMod);
+ if(delta===0) delta=360;
+ rotation+=delta+360*6;
 
  wheel.style.transition="transform 5s cubic-bezier(.17,.67,.12,.99)";
  wheel.style.transform=`rotate(${rotation}deg)`;
