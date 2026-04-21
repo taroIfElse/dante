@@ -95,6 +95,19 @@
       max-width: 16rem;
     }
 
+    .intento-msg {
+      display: none;
+      margin: 0.65rem 0 0;
+      padding: 0 0.25rem;
+      font-size: 0.8rem;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    .intento-msg.is-visible {
+      display: block;
+    }
+
     button {
       width: 100%;
       margin: 0;
@@ -237,6 +250,7 @@
     </div>
     <div class="actions">
       <button type="button" id="btnGirar">Girar</button>
+      <p id="msgIntento" class="intento-msg" role="status"></p>
     </div>
   </main>
   <footer>Promo sujeta a disponibilidad del estudio.</footer>
@@ -293,6 +307,33 @@
     const resultTitle = document.getElementById("resultTitle");
     const resultPremio = document.getElementById("resultPremio");
     const resultCerrar = document.getElementById("resultCerrar");
+    const msgIntento = document.getElementById("msgIntento");
+
+    /** Un intento por navegador (localStorage). Se puede saltar borrando datos del sitio. */
+    const INTENTO_KEY = "dante-ruleta-intento-v1";
+
+    function leerIntento() {
+      try {
+        return localStorage.getItem(INTENTO_KEY);
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function marcarIntento(premio) {
+      try {
+        localStorage.setItem(INTENTO_KEY, premio);
+      } catch (_) {}
+    }
+
+    function aplicarYaJugo(premio) {
+      btnGirar.disabled = true;
+      btnGirar.textContent = "Ya jugaste";
+      msgIntento.classList.add("is-visible");
+      msgIntento.textContent = premio
+        ? `En este dispositivo ya usaste el intento. Te había tocado: «${premio}».`
+        : "En este dispositivo ya usaste el intento.";
+    }
 
     let cx = 160;
     let cy = 160;
@@ -397,8 +438,12 @@
       resultBackdrop.classList.remove("is-open");
       resultBackdrop.setAttribute("aria-hidden", "true");
       document.body.style.overflow = "";
-      btnGirar.disabled = false;
-      btnGirar.focus();
+      const guardado = leerIntento();
+      if (guardado) aplicarYaJugo(guardado);
+      else {
+        btnGirar.disabled = false;
+        btnGirar.focus();
+      }
     }
 
     resultCerrar.addEventListener("click", cerrarResultado);
@@ -413,6 +458,7 @@
     });
 
     function girar() {
+      if (leerIntento()) return;
       if (girando) return;
       girando = true;
       btnGirar.disabled = true;
@@ -433,7 +479,9 @@
           requestAnimationFrame(animar);
         } else {
           const index = indiceBajoPuntero(angulo, opciones.length);
-          abrirResultado(opciones[index]);
+          const premio = opciones[index];
+          marcarIntento(premio);
+          abrirResultado(premio);
           girando = false;
         }
       }
@@ -444,6 +492,8 @@
     function init() {
       layoutCanvas();
       dibujar();
+      const prev = leerIntento();
+      if (prev) aplicarYaJugo(prev);
     }
 
     btnGirar.addEventListener("click", girar);
