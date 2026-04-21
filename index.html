@@ -1,104 +1,284 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Ruleta Tattoo</title>
-<style>
-  body {
-    text-align: center;
-    font-family: Arial;
-    background: #111;
-    color: #fff;
-  }
-  canvas {
-    margin-top: 20px;
-    border-radius: 50%;
-  }
-  button {
-    margin-top: 20px;
-    padding: 10px 20px;
-    font-size: 18px;
-    background: red;
-    color: white;
-    border: none;
-    border-radius: 10px;
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ruleta Tattoo</title>
+  <style>
+    :root {
+      --bg: #0c0c0f;
+      --bg-elevated: #16161c;
+      --text: #f4f4f5;
+      --muted: #a1a1aa;
+      --accent: #dc2626;
+      --accent-hover: #ef4444;
+      --ring: rgba(255, 255, 255, 0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: clamp(1rem, 4vw, 2rem);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif;
+      background:
+        radial-gradient(ellipse 120% 80% at 50% -20%, #2a1215 0%, transparent 50%),
+        var(--bg);
+      color: var(--text);
+      text-align: center;
+    }
+
+    main {
+      width: 100%;
+      max-width: 28rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.35rem, 4vw, 1.75rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    h1 span {
+      display: block;
+      margin-top: 0.35rem;
+      font-size: 0.85em;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    .wheel-wrap {
+      position: relative;
+      width: min(100%, 22rem);
+      aspect-ratio: 1;
+      filter: drop-shadow(0 12px 32px rgba(0, 0, 0, 0.45));
+    }
+
+    .wheel-wrap::after {
+      content: "";
+      position: absolute;
+      top: -0.35rem;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-top: 16px solid var(--text);
+      z-index: 2;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+    }
+
+    #ruleta {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 3px solid var(--ring);
+    }
+
+    .actions {
+      width: 100%;
+      max-width: 16rem;
+    }
+
+    button {
+      width: 100%;
+      margin: 0;
+      padding: 0.9rem 1.25rem;
+      font-size: clamp(1rem, 3vw, 1.1rem);
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #fff;
+      background: linear-gradient(180deg, var(--accent-hover) 0%, var(--accent) 100%);
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(220, 38, 38, 0.35);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+      box-shadow: 0 8px 28px rgba(220, 38, 38, 0.45);
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    footer {
+      margin-top: auto;
+      padding-top: 2rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+  </style>
 </head>
 <body>
+  <main>
+    <h1>Ruleta Tattoo <span>Probá suerte</span></h1>
+    <div class="wheel-wrap">
+      <canvas id="ruleta" width="320" height="320" aria-label="Ruleta de premios"></canvas>
+    </div>
+    <div class="actions">
+      <button type="button" id="btnGirar">Girar</button>
+    </div>
+  </main>
+  <footer>Promo sujeta a disponibilidad del estudio.</footer>
 
-<h2>🎡 Ruleta Tattoo</h2>
-<canvas id="ruleta" width="300" height="300"></canvas>
-<br>
-<button onclick="girar()">GIRAR</button>
+  <script>
+    const opciones = [
+      "Seguí participando 😉",
+      "Seguí participando 😉",
+      "Seguí participando 😉",
+      "Tattoo chico gratis",
+      "20% DESCUENTO",
+      "Tattoo sorpresa",
+      "Hacete un tattoo y llevate otro de regalo"
+    ];
 
-<script>
-const opciones = [
-  "Seguí participando 😉",
-  "Seguí participando 😉",
-  "Seguí participando 😉",
-  "Tattoo chico gratis",
-  "20% DESCUENTO",
-  "Tattoo sorpresa",
-  "Hacete un tattoo y llevate otro de regalo"
-];
+    const colores = [
+      "#18181b", "#27272a", "#3f3f46",
+      "#991b1b", "#c2410c", "#ca8a04", "#7f1d1d"
+    ];
 
-const colores = [
-  "#000000", "#222222", "#333333",
-  "#c1121f", "#e85d04", "#ffba08", "#6a040f"
-];
+    const canvas = document.getElementById("ruleta");
+    const ctx = canvas.getContext("2d");
+    const btnGirar = document.getElementById("btnGirar");
 
-let canvas = document.getElementById("ruleta");
-let ctx = canvas.getContext("2d");
-let angulo = 0;
+    let cx = 160;
+    let cy = 160;
+    let radius = 150;
+    let angulo = 0;
+    let girando = false;
 
-function dibujar() {
-  let arc = Math.PI * 2 / opciones.length;
-  for (let i = 0; i < opciones.length; i++) {
-    ctx.beginPath();
-    ctx.fillStyle = colores[i % colores.length];
-    ctx.moveTo(150,150);
-    ctx.arc(150,150,150,arc*i,arc*(i+1));
-    ctx.fill();
-    ctx.save();
-    ctx.translate(150,150);
-    ctx.rotate(arc*i + arc/2);
-    ctx.fillStyle = "#fff";
-    ctx.fillText(opciones[i], 60, 0);
-    ctx.restore();
-  }
-}
-
-function girar() {
-  let giro = Math.random() * 3000 + 2000;
-  let inicio = null;
-
-  function animar(tiempo) {
-    if (!inicio) inicio = tiempo;
-    let progreso = tiempo - inicio;
-    angulo = (giro * progreso / 3000) % 360;
-
-    ctx.clearRect(0,0,300,300);
-    ctx.save();
-    ctx.translate(150,150);
-    ctx.rotate(angulo * Math.PI/180);
-    ctx.translate(-150,-150);
-    dibujar();
-    ctx.restore();
-
-    if (progreso < 3000) {
-      requestAnimationFrame(animar);
-    } else {
-      let index = Math.floor((opciones.length - (angulo / 360 * opciones.length)) % opciones.length);
-      alert("Te tocó: " + opciones[index]);
+    function layoutCanvas() {
+      const wrap = canvas.parentElement;
+      const css = Math.min(wrap.clientWidth, 352);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const px = Math.round(css * dpr);
+      canvas.width = px;
+      canvas.height = px;
+      canvas.style.width = css + "px";
+      canvas.style.height = css + "px";
+      cx = px / 2;
+      cy = px / 2;
+      radius = px / 2 - Math.max(4, px * 0.02);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.font = `${Math.max(10, px * 0.045)}px system-ui, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
     }
-  }
 
-  requestAnimationFrame(animar);
-}
+    function dibujar() {
+      const arc = (Math.PI * 2) / opciones.length;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-dibujar();
-</script>
+      for (let i = 0; i < opciones.length; i++) {
+        ctx.beginPath();
+        ctx.fillStyle = colores[i % colores.length];
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, radius, arc * i, arc * (i + 1));
+        ctx.fill();
 
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(arc * i + arc / 2);
+        ctx.fillStyle = "#fafafa";
+        const label = opciones[i];
+        const maxW = radius * 0.62;
+        ctx.fillText(label, radius * 0.52, 0, maxW);
+        ctx.restore();
+      }
+    }
+
+    function pintarConRotacion(aDeg) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate((aDeg * Math.PI) / 180);
+      ctx.translate(-cx, -cy);
+      dibujar();
+      ctx.restore();
+    }
+
+    function girar() {
+      if (girando) return;
+      girando = true;
+      btnGirar.disabled = true;
+
+      const giroTotal = 2000 + Math.random() * 2500;
+      const duracion = 3200;
+      let inicio = null;
+
+      function animar(tiempo) {
+        if (inicio === null) inicio = tiempo;
+        const progreso = Math.min(1, (tiempo - inicio) / duracion);
+        const ease = 1 - Math.pow(1 - progreso, 3);
+        angulo = (giroTotal * ease) % 360;
+
+        pintarConRotacion(angulo);
+
+        if (progreso < 1) {
+          requestAnimationFrame(animar);
+        } else {
+          const arcDeg = 360 / opciones.length;
+          const normalizado = ((angulo % 360) + 360) % 360;
+          const index = Math.floor(
+            (opciones.length - normalizado / arcDeg) % opciones.length
+          );
+          alert("Te tocó: " + opciones[index]);
+          girando = false;
+          btnGirar.disabled = false;
+        }
+      }
+
+      requestAnimationFrame(animar);
+    }
+
+    function init() {
+      layoutCanvas();
+      dibujar();
+    }
+
+    btnGirar.addEventListener("click", girar);
+
+    let resizeTimer;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (girando) return;
+        layoutCanvas();
+        dibujar();
+      }, 80);
+    });
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(init).catch(init);
+    } else {
+      init();
+    }
+  </script>
 </body>
 </html>
