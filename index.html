@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Ruleta Tattoo</title>
+<style>
+  body {
+    text-align: center;
+    font-family: Arial;
+    background: #111;
+    color: #fff;
+  }
+  canvas {
+    margin-top: 20px;
+    border-radius: 50%;
+  }
+  button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 18px;
+    background: red;
+    color: white;
+    border: none;
+    border-radius: 10px;
+  }
+</style>
+</head>
+<body>
+
+<h2>🎡 Ruleta Tattoo</h2>
+<canvas id="ruleta" width="300" height="300"></canvas>
+<br>
+<button onclick="girar()">GIRAR</button>
+
+<script>
+const opciones = [
+  "Seguí participando 😉",
+  "Seguí participando 😉",
+  "Seguí participando 😉",
+  "Tattoo chico gratis",
+  "20% DESCUENTO",
+  "Tattoo sorpresa",
+  "Hacete un tattoo y llevate otro de regalo"
+];
+
+const colores = [
+  "#000000", "#222222", "#333333",
+  "#c1121f", "#e85d04", "#ffba08", "#6a040f"
+];
+
+let canvas = document.getElementById("ruleta");
+let ctx = canvas.getContext("2d");
+let angulo = 0;
+
+function dibujar() {
+  let arc = Math.PI * 2 / opciones.length;
+  for (let i = 0; i < opciones.length; i++) {
+    ctx.beginPath();
+    ctx.fillStyle = colores[i % colores.length];
+    ctx.moveTo(150,150);
+    ctx.arc(150,150,150,arc*i,arc*(i+1));
+    ctx.fill();
+    ctx.save();
+    ctx.translate(150,150);
+    ctx.rotate(arc*i + arc/2);
+    ctx.fillStyle = "#fff";
+    ctx.fillText(opciones[i], 60, 0);
+    ctx.restore();
+  }
+}
+
+function girar() {
+  let giro = Math.random() * 3000 + 2000;
+  let inicio = null;
+
+  function animar(tiempo) {
+    if (!inicio) inicio = tiempo;
+    let progreso = tiempo - inicio;
+    angulo = (giro * progreso / 3000) % 360;
+
+    ctx.clearRect(0,0,300,300);
+    ctx.save();
+    ctx.translate(150,150);
+    ctx.rotate(angulo * Math.PI/180);
+    ctx.translate(-150,-150);
+    dibujar();
+    ctx.restore();
+
+    if (progreso < 3000) {
+      requestAnimationFrame(animar);
+    } else {
+      let index = Math.floor((opciones.length - (angulo / 360 * opciones.length)) % opciones.length);
+      alert("Te tocó: " + opciones[index]);
+    }
+  }
+
+  requestAnimationFrame(animar);
+}
+
+dibujar();
+</script>
+
+</body>
+</html>
